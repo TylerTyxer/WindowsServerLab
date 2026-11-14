@@ -206,9 +206,9 @@ Booted with `init=/bin/bash`, remounted root read-write, reset the password, and
 
 ![File share witness in use](screenshots/10-cluster-file-share-witness.png)
 
-**Why iSCSI.** A failover cluster needs storage that every node can see, so whichever node owns the file server role can mount the disk and the other can take it over. In an organization that's a SAN (Dell, NetApp, Pure) wired to the Hyper-V or VMware hosts over Fibre Channel or iSCSI. iSCSI carries SCSI disk commands over ordinary Ethernet, so STOR01 plays the SAN here and FS01/FS02 see its disks as local, unformatted drives. In production the same setup gets dedicated storage NICs on their own VLAN, MPIO (two paths so one dead switch doesn't drop the disk) and CHAP authentication. In a home lab, iSCSI is the only free way to practice shared-storage clustering without buying a SAN.
+**Why iSCSI.** A failover cluster needs storage that every node can see, so whichever node owns the file server role can mount the disk and the other can take it over. In an organization that's a SAN (Dell, NetApp) wired to the Hyper-V or VMware hosts over Fibre Channel or iSCSI. iSCSI carries SCSI disk commands over ordinary Ethernet, so STOR01 plays the SAN here and FS01/FS02 see its disks as local, unformatted drives. In production the same setup gets dedicated storage NICs on their own VLAN, MPIO (two paths so one dead switch doesn't drop the disk) and CHAP authentication. In a home lab, iSCSI is the only free way to practice shared-storage clustering without buying a SAN.
 
-**Why a quorum witness.** Each node gets a vote, and the cluster only runs while more than half the votes are online. With two nodes, losing one leaves 1 of 2, which isn't a majority, so the witness is the third vote that breaks the tie. Its real job is preventing split-brain: if the nodes lose sight of each other, only the side that holds the witness keeps running, so both nodes never write to the same disk at once and corrupt it. I tried both a disk witness (a small iSCSI LUN) and a file share witness. Picking the witness type matters on a disconnected network: Azure cloud witness is the default suggestion in newer builds and won't work with no internet, so it's a file share or disk witness there. The witness also shouldn't live on a VM that runs on the same cluster it's protecting.
+**Why a quorum witness.** Each node gets a vote, and the cluster only runs while more than half the votes are online. With two nodes, losing one leaves 1 of 2, which isn't a majority, so the witness is the third vote that breaks the tie. Its real job is preventing split-brain: if the nodes lose sight of each other, only the side that holds the witness keeps running, so both nodes never write to the same disk at once and corrupt it. I tried both a disk witness (a small iSCSI LUN) and a file share witness. Picking the witness type matters on a disconnected network: Azure cloud witness is the default suggestion in newer builds and won't work without internet, so it's a file share or disk witness there. The witness also shouldn't live on a VM that runs on the same cluster it's protecting.
 
 **Remote access and PKI**
 - RDS session deployment on RDS01
@@ -244,7 +244,7 @@ I also broke LNX01 on purpose to practice recovery (RHCSA prep):
 4. Reclaimed space offline: shut each VM down, mounted its VHDX on the host, cleared the update caches, compacted the disk with `Optimize-VHD`, and started it again.
 5. Repaired the broken secure channel (next section).
 
-**How updates should be served instead.** Clients shouldn't pull from the internet on their own. On an internal or disconnected network the standard is **WSUS** (or MECM with WSUS as its software update point): one server syncs updates, admins approve them, and clients get them by GPO in rings (test, production servers, DCs one at a time, clusters node by node). On a fully disconnected network, WSUS syncs on a connected system and the content is exported and imported across. Microsoft has stopped adding features to WSUS but it is still supported and shipped. Internet-connected fleets are moving to Windows Update for Business, Autopatch or Azure Update Manager.
+**How updates should be served instead.** Clients shouldn't pull from the internet on their own. On an internal or disconnected network the standard is **WSUS** (or MECM with WSUS as its software update point): one server syncs updates, admins approve them (after testing), and clients get them by GPO in rings (test, production servers, DCs one at a time, clusters node by node). On a fully disconnected network, WSUS syncs on a connected system and the content is exported and imported across. Microsoft has stopped adding features to WSUS but it is still supported and shipped. Internet-connected fleets are moving to Windows Update for Business, Autopatch or Azure Update Manager.
 
 ![VMs paused critical](screenshots/05-vms-paused-critical.png)
 ![DCs with critical IO errors](screenshots/06-dcs-critical-io-errors.png)
@@ -270,7 +270,7 @@ What degrades, by role:
 
 | Role | Impact while DC01 is down |
 |---|---|
-| PDC emulator | No authoritative time source, so clock skew creeps in over days. Password changes and lockouts no longer funnel to one DC. GPMC edits GPOs on the PDC by default and warns. |
+| PDC emulator | No authoritative time source, so clock skew creeps in overtime. Password changes and lockouts no longer funnel to one DC. GPMC edits GPOs on the PDC by default and warns. |
 | RID master | DC02 keeps creating users and computers until its current RID pool (500 IDs) runs out, then new accounts fail. |
 | Infrastructure master | No impact when every DC is a global catalog, as here. |
 | Schema master, Domain naming master | Only needed for schema extensions and adding or removing domains. |
