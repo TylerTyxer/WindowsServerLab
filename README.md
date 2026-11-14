@@ -1,8 +1,8 @@
 # Windows Server Lab
 
-Windows Server 2022 environment built on nested Hyper-V in Azure: Active Directory, Group Policy, a two-node failover cluster on iSCSI storage, an internal certificate authority, Remote Desktop Services, a Windows 11 client and a Rocky Linux server joined to the domain.
+Windows Server 2022 environment built on nested Hyper-V in Azure to refresh upon Active Directory, Group Policy Configurations, two-node failovers cluster on iSCSI storage, internal certificate authorities, Remote Desktop Services, and joining Windows 11 and Rocky Linux clients to the domain.
 
-I built it to get hands-on with the infrastructure I want to run day to day. The parts I cared most about were clustering and shared storage. Most production Windows workloads sit on Hyper-V clusters backed by a SAN, and the hard parts of that job are keeping VMs up while hosts get patched, understanding why a cluster loses quorum, and knowing how block storage behaves when a node drops. iSCSI let me build that same pattern with nothing but VMs.
+The parts I cared most about were clustering and shared storage. Most production Windows workloads sit on Hyper-V clusters backed by a SAN, and the hard parts of that job are keeping VMs up while hosts get patched, understanding why a cluster loses quorum, and knowing how block storage behaves when a node drops. iSCSI let me build that same pattern with nothing but VMs.
 
 This is a living project. I'm adding to it (see [Roadmap](#roadmap)).
 
