@@ -2,7 +2,7 @@
 
 Windows Server 2022 environment built on nested Hyper-V in Azure to refresh upon Active Directory, Group Policy Configurations, two-node failovers cluster on iSCSI storage, internal certificate authorities, Remote Desktop Services, and joining Windows 11 and Rocky Linux clients to the domain.
 
-The parts I cared most about were clustering and shared storage. Most production Windows workloads sit on Hyper-V clusters backed by a SAN, and the hard parts of that job are keeping VMs up while hosts get patched, understanding why a cluster loses quorum, and knowing how block storage behaves when a node drops. iSCSI let me build that same pattern with nothing but VMs.
+The parts I cared most about were clustering and shared storage. Most production Windows workloads sit on Hyper-V clusters backed by a SAN, and the hard parts of that job are keeping VMs up while hosts get patched, understanding why a cluster loses quorum, and knowing how block storage behaves when a node drops. iSCSI let me build that same pattern with only VMs.
 
 This is a living project. I'm adding to it (see [Roadmap](#roadmap)).
 
@@ -364,7 +364,7 @@ Errors I hit, and what each one taught me:
 | "The trust relationship between this workstation and the primary domain failed" | Machine password out of sync after a DC was paused. `Test-ComputerSecureChannel -Repair -Credential LAB\Administrator`: returned False the first time, True on the retry. |
 | FS02 Group Policy results full of errors | Side effect of the storage incident: fixed the host disk, restarted both DCs cleanly, repaired the secure channel. Then gpresult came back clean. |
 
-## Commands worth knowing
+## Helpful Commands for Windows Administration
 
 ```powershell
 repadmin /replsummary                       # replication health across all DCs
