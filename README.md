@@ -39,7 +39,7 @@ The PowerShell I ran, cleaned up and in order, is in [`scripts/`](scripts):
 
 ## Build walkthrough
 
-Screenshots from the build, grouped by task. Each one shows the command and what it returned. Click a section to expand it.
+Screenshots from the build, grouped by task. Each one shows the command and what it returned.
 
 <details>
 <summary><b>Hyper-V: base image, VMs, conversion</b></summary>
@@ -201,7 +201,7 @@ Booted with `init=/bin/bash`, remounted root read-write, reset the password, and
 3. Event Viewer › Applications and Services Logs › Microsoft › Windows › GroupPolicy › Operational. 4000-series events mark the start of a processing cycle and 8000-series the end, so the errors between them belong to that run.
 4. The registry: settings from Administrative Templates land in `HKLM\Software\Policies` or `HKCU\Software\Policies`. If the value is there, the GPO applied and the problem is the app.
 5. Timing: members refresh every 90 minutes plus a random 0-30, DCs every 5. A new group membership needs a new Kerberos ticket, so either log off or run `klist -li 0x3e7 purge` to clear the computer's tickets and then `gpupdate /force`, no reboot needed.
-6. Order is Local › Site › Domain › OU, and the last one applied wins unless a link higher up is Enforced. By default a client skips policy that hasn't changed. "Process even if the Group Policy objects have not changed" (Computer Config › Admin Templates › System › Group Policy › Configure registry policy processing) makes it reapply every cycle, which fixes local drift.
+6. Order is Local › Site › Domain › OU, and the last one applied wins unless a link higher up is set to Enforced. By default a client skips policy that hasn't changed. "Process even if the Group Policy objects have not changed" (Computer Config › Admin Templates › System › Group Policy › Configure registry policy processing) makes it reapply every cycle, which fixes local drift.
 
 **Clustering and storage**
 - iSCSI target on STOR01, initiators on both nodes, `Test-Cluster` validation
@@ -251,7 +251,7 @@ I also broke LNX01 on purpose to practice recovery (RHCSA prep):
 4. Reclaimed space offline: shut each VM down, mounted its VHDX on the host, cleared the update caches, compacted the disk with `Optimize-VHD`, and started it again.
 5. Repaired the broken secure channel (next section).
 
-**How updates should be served instead.** Clients shouldn't pull from the internet on their own. On an internal or disconnected network the standard is **WSUS** (or MECM with WSUS as its software update point): one server syncs updates, admins approve them (after testing), and clients get them by GPO in rings (test, production servers, DCs one at a time, clusters node by node). On a fully disconnected network, WSUS syncs on a connected system and the content is exported and imported across. Microsoft has stopped adding features to WSUS but it is still supported and shipped. Internet-connected fleets are moving to Windows Update for Business, Autopatch or Azure Update Manager.
+**How updates should be served instead.** Clients shouldn't pull from the internet on their own. On an internal or disconnected network the standard is **WSUS** (or MECM with WSUS as its software update point): one server syncs updates, admins approve them (after testing), and clients get them by GPO in batches (test, production servers, DCs one at a time, clusters node by node). On a fully disconnected network, WSUS syncs on a connected system and the content is exported and imported across. Microsoft has stopped adding features to WSUS but it is still supported and shipped. Internet-connected fleets are moving to Windows Update for Business, Autopatch or Azure Update Manager.
 
 ![VMs paused critical](screenshots/05-vms.png)
 ![DCs with critical IO errors](screenshots/06-dcs-critical-io-errors.png)
