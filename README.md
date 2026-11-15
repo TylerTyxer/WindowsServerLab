@@ -23,7 +23,7 @@ This is a living project. I'm adding to it (see [Roadmap](#roadmap)).
 
 Domain `lab.local`. Every Windows server runs on a differencing disk off one sysprepped, read-only Server 2022 base image.
 
-![Hyper-V Manager and host volumes](screenshots/01-hyperv-vms-and-host-disk.png)
+![Hyper-V Manager and host volumes](screenshots/01-hyperv-vms-and-host-disk-full-storage.png)
 
 ## Build scripts
 
@@ -246,7 +246,7 @@ I also broke LNX01 on purpose to practice recovery (RHCSA prep):
 
 **How updates should be served instead.** Clients shouldn't pull from the internet on their own. On an internal or disconnected network the standard is **WSUS** (or MECM with WSUS as its software update point): one server syncs updates, admins approve them (after testing), and clients get them by GPO in rings (test, production servers, DCs one at a time, clusters node by node). On a fully disconnected network, WSUS syncs on a connected system and the content is exported and imported across. Microsoft has stopped adding features to WSUS but it is still supported and shipped. Internet-connected fleets are moving to Windows Update for Business, Autopatch or Azure Update Manager.
 
-![VMs paused critical](screenshots/05-vms-paused-critical.png)
+![VMs paused critical](screenshots/05-vms.png)
 ![DCs with critical IO errors](screenshots/06-dcs-critical-io-errors.png)
 ![Group Policy unable to reach a DC](screenshots/08-gp-no-dc-connectivity.png)
 ![Host volume full, new data disk added](screenshots/09-L-full-M-added.png)
@@ -296,8 +296,8 @@ Edge refused the RD Web page with `ERR_SSL_KEY_USAGE_INCOMPATIBLE`. The certific
 - Bound the certificate to RD Web Access, Publishing and Redirector with `Set-RDCertificate`, and verified it with `Get-RDCertificate` (Level: Trusted). Domain clients trust the CA automatically because its root is published in AD.
 
 ![Enterprise CA installed](screenshots/14-ca-install-as-domain-admin.png)
-![Web Server certificate issued](screenshots/18-web-server-cert-issued.png)
-![RD Web Access](screenshots/17-rdweb-working.png)
+![CA-issued cert bound to RDS, CN=RDS01.lab.local in the store](screenshots/build/25-rds-cert-binding.jpg)
+![RD Web Access over HTTPS with no certificate warning](screenshots/build/26-rdweb-remoteapps.jpg)
 
 ## Recovering a VM with a virtual TPM
 
@@ -311,6 +311,9 @@ I was asked about authoritative restores in a previous interview, so I built thi
 
 **SYSVOL (DFSR)**
 - **Non-authoritative**: one DC's SYSVOL is bad; it throws its copy away and pulls a fresh one from a partner. In ADSI Edit, on that DC's `CN=SYSVOL Subscription` object set `msDFSR-Enabled = FALSE`, replicate, `dfsrdiag pollad`, wait for event **4114**. Set it back to TRUE, replicate, `pollad`, and look for **4614** then **4604**. I ran this on DC02.
+
+  ![DC02 SYSVOL disabled, event 4114, after setting msDFSR-Enabled = FALSE](screenshots/03-sysvol-dfsr-nonauth-restore.png)
+
 - **Authoritative**: SYSVOL is bad everywhere, or every DC needs to roll back to one good copy. Stop DFSR on all DCs. On the good DC set `msDFSR-Enabled = FALSE` and `msDFSR-Options = 1`; on the rest set `msDFSR-Enabled = FALSE`. Replicate, start DFSR on the good DC (4114), set it to TRUE and `pollad` (**4602**). Then start DFSR on the others (4114), set them TRUE and `pollad` (4614, 4604). Anything changed only on the other DCs is lost, so it's the last resort.
 
 Before and after either one, check the backlog to see if the DCs are actually in sync. `dfsrdiag` isn't on a DC by default; it comes with the DFS management tools:
@@ -322,7 +325,7 @@ dfsrdiag backlog /rgname:"Domain System Volume" /rfname:"SYSVOL Share" /smem:DC0
 Get-DfsrBacklog -GroupName "Domain System Volume" -FolderName "SYSVOL Share" -SourceComputerName DC01 -DestinationComputerName DC02
 ```
 
-![DFSR events during the non-authoritative resync](screenshots/03-sysvol-dfsr-nonauth-restore.png)
+![DFSR backlog check: dfsrdiag missing, RSAT installed, DC02 in sync](screenshots/build/11-dfsr-backlog.jpg)
 
 **AD database**
 - **Recycle Bin first**: with it enabled, a deleted user or OU comes back with its attributes and group memberships through `Restore-ADObject`. No downtime.
