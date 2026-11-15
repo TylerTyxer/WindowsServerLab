@@ -190,7 +190,8 @@ Booted with `init=/bin/bash`, remounted root read-write, reset the password, and
 - DISA STIG GPO backups imported into a test OU before wider rollout
 - GPOs named by scope: `WS - Bitlocker`, `WS - Security Baseline`, `WS - Remote GP Firewall`, `USR - Drive Map`
 
-![Group Policy Preferences registry item for proxy settings](screenshots/02-gpp-proxy-exception.png)
+![ProxyOverride registry preference in USR - Site Exceptions](screenshots/02-gpp-proxyoverride-properties.png)
+![USR - Site Exceptions settings report: Trusted Sites zone assignment and the ProxyOverride preference in one GPO](screenshots/03-gpo-site-exceptions-settings.png)
 ![ProxyOverride value in the USR - Site Exceptions GPO](screenshots/04-gpp-proxyoverride.png)
 
 **How I check whether a GPO applied**
