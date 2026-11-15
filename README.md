@@ -395,7 +395,7 @@ Get-RDCertificate -ConnectionBroker rds01.lab.local
 - **Moving to a physical server at home.** A used rack server (PowerEdge or ProLiant class) running Hyper-V, hosting real workloads instead of only lab VMs: trade-copier software for my futures accounts, and always-on browser-based AI agents for search and automation that use my own data. Since that data is personal, the build plan is security first: its own VLAN, no inbound ports (remote access only over a WireGuard or Tailscale VPN), secrets in a vault instead of config files, encrypted disks, least-privilege service accounts, and tested backups. It also gives me iDRAC/iLO, RAID and hardware-failure experience that a cloud VM can't.
 - **Lower-cost stand-ins for expensive platforms.** Citrix licensing makes it hard to lab, so RDS with RemoteApp covers the same concepts (session hosts, published apps, profiles, loopback policy). The tradeoff is that RDS lacks Citrix's HDX protocol tuning, PVS/MCS image management and Director's helpdesk view. Other free options I'm weighing: Veeam Backup & Replication Community Edition for backup and restore drills, Windows Admin Center for management, and VMware's evaluation licenses for vSphere side-by-side comparison.
 
-## Terms
+## Key Terms
 
 | Term | Meaning |
 |---|---|
