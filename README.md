@@ -179,6 +179,8 @@ Booted with `init=/bin/bash`, remounted root read-write, reset the password, and
 - OU design (Users, Workstations, Servers, Groups, VDA) and bulk user creation from CSV, `redircmp` so new computers land in Workstations instead of the default Computers container (which can't take a GPO link)
 - AD Recycle Bin, fine-grained password policy, BitLocker recovery keys escrowed to AD
 
+![Fine-grained password policy for Domain Admins](screenshots/13-fine-grained-password-policy.png)
+
 **Group Policy**
 - Central ADMX store, security baseline with logon banner, firewall rules for remote GP refresh
 - Pushed policy three ways (`gpupdate`, `Invoke-GPUpdate`, GPMC by OU) and verified with `gpresult`
@@ -189,6 +191,7 @@ Booted with `init=/bin/bash`, remounted root read-write, reset the password, and
 - GPOs named by scope: `WS - Bitlocker`, `WS - Security Baseline`, `WS - Remote GP Firewall`, `USR - Drive Map`
 
 ![Group Policy Preferences registry item for proxy settings](screenshots/02-gpp-proxy-exception.png)
+![ProxyOverride value in the USR - Site Exceptions GPO](screenshots/04-gpp-proxyoverride.png)
 
 **How I check whether a GPO applied**
 
@@ -204,6 +207,9 @@ Booted with `init=/bin/bash`, remounted root read-write, reset the password, and
 - Two-node cluster, disk witness and then a file share witness on DC01 (granted to the cluster's computer account, FSCLU$)
 - Clustered file server role, planned and unplanned failover, drain / patch / resume of a node
 
+![Cluster nodes, roles and quorum](screenshots/10-cluster-nodes-roles-quorum.png)
+![Planned failover of FSCLUFS from FS01 to FS02](screenshots/11-cluster-failover-drill.png)
+![iSCSI target on STOR01 with both initiators connected](screenshots/12-iscsi-target-and-disks.png)
 ![File share witness in use](screenshots/10-cluster-file-share-witness.png)
 
 **Why iSCSI.** A failover cluster needs storage that every node can see, so whichever node owns the file server role can mount the disk and the other can take it over. In an organization that's a SAN (Dell, NetApp) wired to the Hyper-V or VMware hosts over Fibre Channel or iSCSI. iSCSI carries SCSI disk commands over ordinary Ethernet, so STOR01 plays the SAN here and FS01/FS02 see its disks as local, unformatted drives. In production the same setup gets dedicated storage NICs on their own VLAN, MPIO (two paths so one dead switch doesn't drop the disk) and CHAP authentication. In a home lab, iSCSI is the only free way to practice shared-storage clustering without buying a SAN.
@@ -296,7 +302,7 @@ Edge refused the RD Web page with `ERR_SSL_KEY_USAGE_INCOMPATIBLE`. The certific
 - Bound the certificate to RD Web Access, Publishing and Redirector with `Set-RDCertificate`, and verified it with `Get-RDCertificate` (Level: Trusted). Domain clients trust the CA automatically because its root is published in AD.
 
 ![Enterprise CA installed](screenshots/14-ca-install-as-domain-admin.png)
-![CA-issued cert bound to RDS, CN=RDS01.lab.local in the store](screenshots/build/25-rds-cert-binding.jpg)
+![Exporting the CA-issued cert and binding it to RDS](screenshots/build/25-rds-cert-binding.jpg)
 ![RD Web Access over HTTPS with no certificate warning](screenshots/build/26-rdweb-remoteapps.jpg)
 
 ## Recovering a VM with a virtual TPM
@@ -312,7 +318,7 @@ I was asked about authoritative restores in a previous interview, so I built thi
 **SYSVOL (DFSR)**
 - **Non-authoritative**: one DC's SYSVOL is bad; it throws its copy away and pulls a fresh one from a partner. In ADSI Edit, on that DC's `CN=SYSVOL Subscription` object set `msDFSR-Enabled = FALSE`, replicate, `dfsrdiag pollad`, wait for event **4114**. Set it back to TRUE, replicate, `pollad`, and look for **4614** then **4604**. I ran this on DC02.
 
-  ![DC02 SYSVOL disabled, event 4114, after setting msDFSR-Enabled = FALSE](screenshots/03-sysvol-dfsr-nonauth-restore.png)
+  ![Non-authoritative SYSVOL restore on DC02: FALSE then 4114, TRUE then 4614 and 4604](screenshots/03-sysvol-dfsr-nonauth-restore.png)
 
 - **Authoritative**: SYSVOL is bad everywhere, or every DC needs to roll back to one good copy. Stop DFSR on all DCs. On the good DC set `msDFSR-Enabled = FALSE` and `msDFSR-Options = 1`; on the rest set `msDFSR-Enabled = FALSE`. Replicate, start DFSR on the good DC (4114), set it to TRUE and `pollad` (**4602**). Then start DFSR on the others (4114), set them TRUE and `pollad` (4614, 4604). Anything changed only on the other DCs is lost, so it's the last resort.
 
@@ -365,6 +371,8 @@ Errors I hit, and what each one taught me:
 | `dcdiag` fails `DFSREvent` on a new DC | Warning/error events from the first 24 hours after SYSVOL is shared. Expected right after promotion; it clears on its own. |
 | `dfsrdiag : The term 'dfsrdiag' is not recognized` | Not installed on DCs by default. `Install-WindowsFeature RSAT-DFS-Mgmt-Con`. |
 | "The trust relationship between this workstation and the primary domain failed" | Machine password out of sync after a DC was paused. `Test-ComputerSecureChannel -Repair -Credential LAB\Administrator`: returned False the first time, True on the retry. |
+| `Start-VM`: saved state can't be restored, processor features don't match | Azure started LABHOST on a host with a different CPU, and saved state is tied to the CPU it was saved on. `Remove-VMSavedState` and a cold boot fixed it. Shutting the VMs down instead of saving them before stopping the host avoids it. |
+| Clustered role FSCLUFS Failed, Network Name error `0x3eb` | The role's computer object (FSCLUFS$) was missing from AD, so the cluster couldn't bring its name online. Granted the cluster account `Create Computer objects` on the Servers OU (`dsacls ... /G "LAB\FSCLU$:CC;computer"`) and ran `Start-ClusterGroup`; the cluster recreated the object and the role came online. |
 | FS02 Group Policy results full of errors | Side effect of the storage incident: fixed the host disk, restarted both DCs cleanly, repaired the secure channel. Then gpresult came back clean. |
 
 ## Helpful Commands for Windows Administration
