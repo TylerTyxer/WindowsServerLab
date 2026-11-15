@@ -146,7 +146,7 @@ DC02 went from Local CMOS Clock to the Hyper-V provider to `DC01.lab.local` once
 <summary><b>Certificates and RDS</b></summary>
 
 ![Binding the cert to RDS](screenshots/build/25-rds-cert-binding.jpg)
-Exports the CA-issued cert, binds it to RD Web Access, Publishing and Redirector with `Set-RDCertificate`, and sets it on the RDP listener through `Win32_TSGeneralSetting`. The cert store shows `CN=RDS01.lab.local` from the internal CA.
+Exports the CA-issued cert, binds it to RD Web Access, Publishing and Redirector with `Set-RDCertificate`, and sets it on the RDP listener through `Win32_TSGeneralSetting`. The cert store lists the LAB-CA certs (blank subject, since the name lives in the SAN, valid to 2028) next to the self-signed `CN=RDS01.lab.local` that RDS generated for itself.
 
 ![RD Web Access](screenshots/build/26-rdweb-remoteapps.jpg)
 RD Web loads over HTTPS with no certificate warning and lists the published RemoteApps (Notepad, Paint).
@@ -299,7 +299,7 @@ Edge refused the RD Web page with `ERR_SSL_KEY_USAGE_INCOMPATIBLE`. The certific
 - Deployed an **Enterprise Root CA** on STOR01. An Enterprise CA registers itself in AD's configuration partition, so the install has to run as Enterprise Admin.
 - Issued a **Web Server** certificate for `rds01.lab.local`. A request into the computer's certificate store enrolls as the computer account, so the template needs Read and Enroll for that computer or group.
 - RDS needs the private key to be **exportable** because the broker distributes the certificate to the other role servers. The built-in Web Server template is a version 1 template that can't be edited, so the right move is to duplicate it with "Allow private key to be exported" and publish the copy with `Add-CATemplate`.
-- Bound the certificate to RD Web Access, Publishing and Redirector with `Set-RDCertificate`, and verified it with `Get-RDCertificate` (Level: Trusted). Domain clients trust the CA automatically because its root is published in AD.
+- Bound the certificate to RD Web Access, Publishing and Redirector with `Set-RDCertificate`, then confirmed RD Web loads over HTTPS with no certificate warning. Domain clients trust the CA automatically because its root is published in AD.
 
 ![Enterprise CA installed](screenshots/14-ca-install-as-domain-admin.png)
 ![Exporting the CA-issued cert and binding it to RDS](screenshots/build/25-rds-cert-binding.jpg)
@@ -373,6 +373,7 @@ Errors I hit, and what each one taught me:
 | "The trust relationship between this workstation and the primary domain failed" | Machine password out of sync after a DC was paused. `Test-ComputerSecureChannel -Repair -Credential LAB\Administrator`: returned False the first time, True on the retry. |
 | `Start-VM`: saved state can't be restored, processor features don't match | Azure started LABHOST on a host with a different CPU, and saved state is tied to the CPU it was saved on. `Remove-VMSavedState` and a cold boot fixed it. Shutting the VMs down instead of saving them before stopping the host avoids it. |
 | Clustered role FSCLUFS Failed, Network Name error `0x3eb` | The role's computer object (FSCLUFS$) was missing from AD, so the cluster couldn't bring its name online. Granted the cluster account `Create Computer objects` on the Servers OU (`dsacls ... /G "LAB\FSCLU$:CC;computer"`) and ran `Start-ClusterGroup`; the cluster recreated the object and the role came online. |
+| `Get-RDCertificate` shows every role as NotConfigured after the lab was cold-booted | Noticed after the hard stop: the binding was gone, but the LAB-CA cert was still in the store. Since the cert is already on the broker, `Set-RDCertificate -Role <role> -Thumbprint <thumb> -ConnectionBroker rds01.lab.local -Force` would rebind it without re-exporting a PFX. I found this right before tearing the lab down, so it's a check to run after any hard stop rather than a fix I tested. |
 | FS02 Group Policy results full of errors | Side effect of the storage incident: fixed the host disk, restarted both DCs cleanly, repaired the secure channel. Then gpresult came back clean. |
 
 ## Helpful Commands for Windows Administration
