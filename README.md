@@ -1,5 +1,5 @@
 # Windows Server Lab
-screenshots/07-sysvol
+
 Windows Server 2022 environment built on nested Hyper-V in Azure to brush up on Active Directory, Group Policy configuration, a two-node failover cluster on iSCSI storage, internal certificate authorities, Remote Desktop Services, and joining Windows 11 and Rocky Linux clients to the domain.
 
 The parts I cared most about were clustering and shared storage. Most production Windows workloads sit on Hyper-V clusters backed by a SAN, and the hard parts of that job are keeping VMs up while hosts get patched, understanding why a cluster loses quorum, and knowing how block storage behaves when a node drops. iSCSI let me build that same pattern with only VMs.
@@ -319,7 +319,7 @@ I was asked about authoritative restores in a previous interview, so I built thi
 **SYSVOL (DFSR)**
 - **Non-authoritative**: one DC's SYSVOL is bad; it throws its copy away and pulls a fresh one from a partner. In ADSI Edit, on that DC's `CN=SYSVOL Subscription` object set `msDFSR-Enabled = FALSE`, replicate, `dfsrdiag pollad`, wait for event **4114**. Set it back to TRUE, replicate, `pollad`, and look for **4614** then **4604**. I ran this on DC02.
 
-  ![Non-authoritative SYSVOL restore on DC02: FALSE then 4114, TRUE then 4614 and 4604](screenshots/03-sysvol-dfsr-nonauth-restore.png)
+  ![Non-authoritative SYSVOL restore on DC02: FALSE then 4114, TRUE then 4614 and 4604](screenshots/07-sysvol-dfsr-nonauth-restore.png)
 
 - **Authoritative**: SYSVOL is bad everywhere, or every DC needs to roll back to one good copy. Stop DFSR on all DCs. On the good DC set `msDFSR-Enabled = FALSE` and `msDFSR-Options = 1`; on the rest set `msDFSR-Enabled = FALSE`. Replicate, start DFSR on the good DC (4114), set it to TRUE and `pollad` (**4602**). Then start DFSR on the others (4114), set them TRUE and `pollad` (4614, 4604). Anything changed only on the other DCs is lost, so it's the last resort.
 
