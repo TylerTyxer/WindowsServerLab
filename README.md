@@ -1,6 +1,6 @@
 # Windows Server Lab
-
-Windows Server 2022 environment built on nested Hyper-V in Azure to refresh upon Active Directory, Group Policy Configurations, two-node failovers cluster on iSCSI storage, internal certificate authorities, Remote Desktop Services, and joining Windows 11 and Rocky Linux clients to the domain.
+screenshots/07-sysvol
+Windows Server 2022 environment built on nested Hyper-V in Azure to brush up on Active Directory, Group Policy configuration, a two-node failover cluster on iSCSI storage, internal certificate authorities, Remote Desktop Services, and joining Windows 11 and Rocky Linux clients to the domain.
 
 The parts I cared most about were clustering and shared storage. Most production Windows workloads sit on Hyper-V clusters backed by a SAN, and the hard parts of that job are keeping VMs up while hosts get patched, understanding why a cluster loses quorum, and knowing how block storage behaves when a node drops. iSCSI let me build that same pattern with only VMs.
 
@@ -211,7 +211,7 @@ Booted with `init=/bin/bash`, remounted root read-write, reset the password, and
 ![Cluster nodes, roles and quorum](screenshots/10-cluster-nodes-roles-quorum.png)
 ![Planned failover of FSCLUFS from FS01 to FS02](screenshots/11-cluster-failover-drill.png)
 ![iSCSI target on STOR01 with both initiators connected](screenshots/12-iscsi-target-and-disks.png)
-![File share witness in use](screenshots/10-cluster-file-share-witness.png)
+![File share witness in use](screenshots/15-cluster-file-share-witness.png)
 
 **Why iSCSI.** A failover cluster needs storage that every node can see, so whichever node owns the file server role can mount the disk and the other can take it over. In an organization that's a SAN (Dell, NetApp) wired to the Hyper-V or VMware hosts over Fibre Channel or iSCSI. iSCSI carries SCSI disk commands over ordinary Ethernet, so STOR01 plays the SAN here and FS01/FS02 see its disks as local, unformatted drives. In production the same setup gets dedicated storage NICs on their own VLAN, MPIO (two paths so one dead switch doesn't drop the disk) and CHAP authentication. In a home lab, iSCSI is the only free way to practice shared-storage clustering without buying a SAN.
 
@@ -277,7 +277,7 @@ What degrades, by role:
 
 | Role | Impact while DC01 is down |
 |---|---|
-| PDC emulator | No authoritative time source, so clock skew creeps in overtime. Password changes and lockouts no longer funnel to one DC. GPMC edits GPOs on the PDC by default and warns. |
+| PDC emulator | No authoritative time source, so clock skew creeps in over time. Password changes and lockouts no longer funnel to one DC. GPMC edits GPOs on the PDC by default and warns. |
 | RID master | DC02 keeps creating users and computers until its current RID pool (500 IDs) runs out, then new accounts fail. |
 | Infrastructure master | No impact when every DC is a global catalog, as here. |
 | Schema master, Domain naming master | Only needed for schema extensions and adding or removing domains. |
@@ -310,7 +310,7 @@ Edge refused the RD Web page with `ERR_SSL_KEY_USAGE_INCOMPATIBLE`. The certific
 
 A Windows 11 VM failed to restore from saved state: "Microsoft Virtual TPM Device ... the computed authentication tag did not match." The saved state includes the vTPM's encrypted data and was damaged when the host volume filled. Recovery order: discard the saved state (`Remove-VMSavedState`) and cold boot. If the vTPM itself can't be unlocked, replace it (new key protector, `Enable-VMTPM`), pull the BitLocker recovery password from AD (the `msFVE-RecoveryInformation` object under the computer account), then reseal BitLocker to the new TPM with `manage-bde -protectors -add C: -tpm`.
 
-![vTPM restore failure](screenshots/11-vtpm-saved-state-failure.png)
+![vTPM restore failure](screenshots/16-vtpm-saved-state-failure.png)
 
 ## Restore runbook: SYSVOL and the AD database
 
